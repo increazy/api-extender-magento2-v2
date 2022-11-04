@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Catalog\Api\ProductRepositoryInterface">
+        <plugin name="product_field" type="Increazy\ApiExtenderV2\Plugin\Product"/>
+    </type>
+
+    <type name="Magento\Catalog\Api\CategoryRepositoryInterface">
+        <plugin name="category_field" type="Increazy\ApiExtenderV2\Plugin\Category"/>
+    </type>
+</config>

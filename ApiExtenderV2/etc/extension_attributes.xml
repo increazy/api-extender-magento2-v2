@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+    <extension_attributes for="Magento\Eav\Api\Data\AttributeInterface">
+        <attribute
+            code="product_attribute_option_swatch"
+            type="Increazy\ApiExtenderV2\Attribute\SwatchOptionInterface[]"
+        />
+    </extension_attributes>
+
+    <extension_attributes for="Magento\Catalog\Api\Data\CategoryInterface">
+        <attribute code="increazy" type="string"/>
+    </extension_attributes>
+
+    <extension_attributes for="Magento\Catalog\Api\Data\ProductInterface">
+        <attribute code="increazy" type="string"/>
+    </extension_attributes>
+</config>

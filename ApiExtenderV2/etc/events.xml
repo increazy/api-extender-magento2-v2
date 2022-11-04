@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+  <event name="catalog_entity_attribute_load_after">
+      <observer
+        name="increazy_product_attribute_option_swatch"
+        instance="Increazy\ApiExtenderV2\Observer\OptionSwatchLoadAfter"
+      />
+  </event>
+</config>
