@@ -235,7 +235,8 @@ class Product
     {
         $stockItem = $this->stock->load($entity->getId(), 'product_id');
         return array_merge($stockItem->getData(), [
-            'sku'           => $entity->getSku(),
+            'sku'     => $entity->getSku(),
+            'salable' => $entity->isSalable(),
         ]);
     }
 
