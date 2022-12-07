@@ -16,8 +16,7 @@ class Stockcommititem implements ObserverInterface
             $isTest = $scopeConfig->getValue('increazy_general/general/test', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
             $env = $isTest ? '.test' : '';
 
-            $event = $observer->getEvent();
-            $item = $event->getItem();
+            $item = $observer->getItem();
             $id = $item->getProductId();
 
             $ch = curl_init('https://indexer' . $env . '.increazy.com/magento2/webhook/product');

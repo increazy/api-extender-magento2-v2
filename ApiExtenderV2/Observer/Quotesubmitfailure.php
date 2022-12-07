@@ -16,7 +16,7 @@ class Quotesubmitfailure implements ObserverInterface
             $isTest = $scopeConfig->getValue('increazy_general/general/test', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
             $env = $isTest ? '.test' : '';
 
-            $quote = $observer->getEvent()->getQuote();
+            $quote = $observer->getQuote();
             foreach ($quote->getAllItems() as $item) {
                 $id = $item->getProductId();
     

@@ -8,7 +8,7 @@ class Productattributeupdatebefore implements ObserverInterface
 {
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-        try {
+        // try {
             $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
             $scopeConfig = $objectManager->get('Magento\Framework\App\Config\ScopeConfigInterface');
 
@@ -16,7 +16,7 @@ class Productattributeupdatebefore implements ObserverInterface
             $isTest = $scopeConfig->getValue('increazy_general/general/test', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
             $env = $isTest ? '.test' : '';
 
-            $productIds = $observer->getEvent()->getProductIds();
+            $productIds = $observer->getProductIds();
 
             foreach ($productIds as $id) {
                 $ch = curl_init('https://indexer' . $env . '.increazy.com/magento2/webhook/product');
@@ -35,6 +35,6 @@ class Productattributeupdatebefore implements ObserverInterface
             }
 
             
-        } catch (\Exception $e) {}
+        // } catch (\Exception $e) {}
     }
 }
