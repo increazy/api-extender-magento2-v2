@@ -4,9 +4,23 @@
         <observer name="webhook_increazy_p_save" instance="Increazy\ApiExtenderV2\Observer\Productsaveafter" />
     </event>
 
-    <event name="catalog_product_attribute_update_before">
-        <observer name="webhook_increazy_p_a_save" instance="Increazy\ApiExtenderV2\Observer\Productattributeupdatebefore" />
-    </event>
+    <!-- Mass Action "Update Attribute" -->                 
+	<event name="controller_action_predispatch_catalog_product_action_attribute_save">	
+		<observer name="increazywb_catalog_product_mass_action_update_attributes" instance="Increazy\ApiExtenderV2\Observer\CatalogProductUpdateAttributes" />
+	</event>
+
+	<!-- Mass Action: Update Status -->
+	<event name="controller_action_postdispatch_catalog_product_massStatus">
+		<observer name="increazywb_catalog_product_mass_action_update_status" instance="Increazy\ApiExtenderV2\Observer\CatalogProductUpdateAttributes" />
+	</event>
+
+    <event name="sales_order_save_after">
+		<observer name="increazywb_sales_order_save_after" instance="Increazy\ApiExtenderV2\Observer\OrderPlaced" />
+	</event>
+
+	<event name="sales_order_place_after">
+		<observer name="increazywb_sales_order_place_after" instance="Increazy\ApiExtenderV2\Observer\OrderPlaced" />
+	</event>
 
     
 
