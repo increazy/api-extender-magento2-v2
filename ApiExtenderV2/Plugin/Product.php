@@ -235,9 +235,21 @@ class Product
     {
         $stockItem = $this->stock->load($entity->getId(), 'product_id');
 
-        return array_merge($stockItem->getData(), [
+		$stock = $stockItem->getData();
+		$stock['salable'] = $stock['qty'];
+
+		if (class_exists('\Magento\InventorySalesAdminUi\Model\GetSalableQuantityDataBySku')) {
+			$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+			$StockState = $objectManager->get('\Magento\InventorySalesAdminUi\Model\GetSalableQuantityDataBySku');
+			$qty = $StockState->execute($entity->getSku());
+
+			if (count($qty) > 0) {
+				$stock['salable'] = $qty[0]['qty'] ?? $stock['qty'];
+			}
+		}
+
+        return array_merge($stock, [
             'sku'     => $entity->getSku(),
-            'salable' => $entity->isSalable(),
         ]);
     }
 
