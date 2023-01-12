@@ -12,6 +12,7 @@ class Category
     protected $extensionFactory;
     protected $objectManager;
 
+
     /**
      * @param \Magento\Catalog\Api\Data\CategoryExtensionFactory 
      * $extensionFactory
@@ -36,14 +37,15 @@ class Category
         $extensionAttributes->setIncreazy(json_encode([
           'image'         => $this->getImage($category),
           'products'      => $this->getSequenceProducts($category),
-          'subcategories' => $this->getCategory($category),
+          'subcategories' => $this->getSubCategories($category),
+          'stores'        => $category->getStoreIds(),
         ]));
         $category->setExtensionAttributes($extensionAttributes);
 
         return $category;
     }
 
-    protected function getCategory($category)
+    protected function getSubCategories($category)
     {
         $categoryFull = $this->objectManager
             ->create('Magento\Catalog\Model\Category')
@@ -52,16 +54,7 @@ class Category
         $children = $categoryFull->getChildrenCategories();
 
         foreach ($children as $child) {
-            $subcategory = array_merge($child->getData(), [
-                'image'         => $this->getImage($child),
-                'products'      => $this->getSequenceProducts($child),
-                'subcategories' => $this->getCategory($child),
-            ]);
-            if (isset($subcategory['url_key'])) {
-                $subcategory['url_key'] = isset($subcategory['request_path']) ? str_replace('.html', '', $subcategory['request_path']) : $subcategory['url_key'];
-            }
-      
-            $subcategories[] = $subcategory;
+            $subcategories[] = $child->getId();
         }
 
         return $subcategories;
