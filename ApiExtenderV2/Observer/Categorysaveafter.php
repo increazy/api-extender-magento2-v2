@@ -14,12 +14,12 @@ class Categorysaveafter implements ObserverInterface
 
             $appID = $scopeConfig->getValue('increazy_general/general/app', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
             $isTest = $scopeConfig->getValue('increazy_general/general/test', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-            $env = $isTest ? '.test' : '';
+            $env = $isTest ? '.homolog' : '';
 
             $category = $observer->getCategory();
             $id = $category->getId();
 
-            $ch = curl_init('https://indexer' . $env . '.increazy.com/magento2/webhook/category');
+            $ch = curl_init('https://indexer.api' . $env . '.increazy.com/magento2/webhook/category');
             $payload = json_encode([
                 'app'    => $appID,
                 'action' => 'save',

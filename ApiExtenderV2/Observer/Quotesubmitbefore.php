@@ -14,13 +14,13 @@ class Quotesubmitbefore implements ObserverInterface
 
             $appID = $scopeConfig->getValue('increazy_general/general/app', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
             $isTest = $scopeConfig->getValue('increazy_general/general/test', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-            $env = $isTest ? '.test' : '';
+            $env = $isTest ? '.homolog' : '';
 
             $quote = $observer->getQuote();
             foreach ($quote->getAllItems() as $item) {
                 $id = $item->getProductId();
     
-                $ch = curl_init('https://indexer' . $env . '.increazy.com/magento2/webhook/product');
+                $ch = curl_init('https://indexer.api' . $env . '.increazy.com/magento2/webhook/product');
                 $payload = json_encode([
                     'app'    => $appID,
                     'action' => 'save',
