@@ -14,16 +14,17 @@ class CatalogProductUpdateAttributes implements \Magento\Framework\Event\Observe
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
         $productIds = $this->catalogProductEditActionAttributeHelper->getProductIds();
+        if (!isset($productIds)) return;
 
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $scopeConfig = $objectManager->get('Magento\Framework\App\Config\ScopeConfigInterface');
 
         $appID = $scopeConfig->getValue('increazy_general/general/app', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
         $isTest = $scopeConfig->getValue('increazy_general/general/test', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-        $env = $isTest ? '.homolog' : '';
+        $env = $isTest ? '.test' : '';
 
         foreach ($productIds as $id) {
-            $ch = curl_init('https://indexer.api' . $env . '.increazy.com/magento2/webhook/product');
+            $ch = curl_init('https://indexer' . $env . '.increazy.com/magento2/webhook/product');
             $payload = json_encode([
                 'app'    => $appID,
                 'action' => 'save',
