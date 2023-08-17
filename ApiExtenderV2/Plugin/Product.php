@@ -103,7 +103,6 @@ class Product
                 'getters'    => $getters,
                 'media'      => $this->getMedia($entity),
                 'stock'      => $this->getStock($entity),
-                'breadcrumb' => $this->getBreadcrumb($entity) ?? [],
                 'prices'     => $this->getPrices($entity) ?? [],
             ]));
 
@@ -191,44 +190,11 @@ class Product
     private function getSubProducts($entity)
     {
         return array_values(array_map(function($productId) {
-            $product = $this->product->load($productId);
-            return array_merge($product->getData(), [
-                'prices' => $this->getPrices($product),
-                'media'  => $product->getMediaGalleryImages()->toArray()['items'],
-                'stock'  => $this->getStock($product),
-            ]);
+	    return [
+		'attribute' => 'id',
+	        'value' => $productId
+	    ];
         }, $entity->getExtensionAttributes()->getConfigurableProductLinks() ?? []));
-    }
-
-    private function getBreadcrumb($entity)
-    {
-        $evercrumbs = [];
-
-        $categoryCollection = clone $entity->getCategoryCollection();
-        $categoryCollection->clear();
-        $categoryCollection->addAttributeToSort('level', $categoryCollection::SORT_ORDER_DESC)
-            ->addAttributeToFilter('path', [
-                'like' => "1/" . $this->storeManager->getStore()->getRootCategoryId() . "/%"]
-            );
-
-        $categoryCollection->setPageSize(1);
-        $breadcrumbCategories = $categoryCollection->getFirstItem()->getParentCategories();
-
-        foreach ($breadcrumbCategories as $category) {
-            $evercrumbs[] = array(
-                'label' => $category->getName(),
-                'title' => $category->getName(),
-                'link'  => $category->getUrl()
-            );
-        }
-
-        $evercrumbs[] = [
-            'label' => $entity->getName(),
-            'title' => $entity->getName(),
-            'link'  => ''
-        ];
-
-        return $evercrumbs;
     }
 
     private function getStock($entity)
