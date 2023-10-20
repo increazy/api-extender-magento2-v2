@@ -17,6 +17,10 @@ class Product
     private $storeManager;
     private $product;
     private $swatchHelper;
+    private $stock;
+    private $rule;
+    private $customerGroup;
+    private $dateTime;
 
     /**
      * @var \Magento\Catalog\Model\ResourceModel\Category\CollectionFactory
