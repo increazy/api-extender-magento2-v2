@@ -217,7 +217,7 @@ class Product
 				if (count($qty) > 0) {
 					$stock['salable'] = $qty[0]['qty'] ?? $stock['qty'];
 				}
-			} catch(\Error $e) {}
+			} catch(\Error $e) {} catch(\Exception $e) {}
 		}
 
         return array_merge($stock, [
