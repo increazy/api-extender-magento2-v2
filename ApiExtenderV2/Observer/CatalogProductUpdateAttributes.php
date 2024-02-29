@@ -1,42 +1,61 @@
 <?php
 namespace Increazy\ApiExtenderV2\Observer;
 
+use Increazy\ApiExtenderV2\Model\WebClientInterface;
+use Magento\Ui\Component\MassAction\Filter;
+use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
+use Magento\Framework\Exception\LocalizedException;
+
 class CatalogProductUpdateAttributes implements \Magento\Framework\Event\ObserverInterface
 {
     protected $catalogProductEditActionAttributeHelper;
 
+    /**
+     * @var WebClientInterface
+     */
+    protected $webClient;
+
+    /**
+     * @var CollectionFactory
+     */
+    protected $collectionFactory;
+    
+    /**
+     * MassActions filter
+     *
+     * @var Filter
+     */
+    protected $filter;
+
     public function __construct(
-        \Magento\Catalog\Helper\Product\Edit\Action\Attribute $catalogProductEditActionAttributeHelper
+        WebClientInterface $webClient,
+        Filter $filter,
+        CollectionFactory $collectionFactory
     ) {
-        $this->catalogProductEditActionAttributeHelper = $catalogProductEditActionAttributeHelper;
+        $this->webClient = $webClient;
+        $this->filter = $filter;
+        $this->collectionFactory = $collectionFactory;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-        $productIds = $this->catalogProductEditActionAttributeHelper->getProductIds();
-        if (!isset($productIds)) return;
-
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $scopeConfig = $objectManager->get('Magento\Framework\App\Config\ScopeConfigInterface');
-
-        $appID = $scopeConfig->getValue('increazy_general/general/app', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-        $isTest = $scopeConfig->getValue('increazy_general/general/test', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-        $env = $isTest ? '.test' : '';
-
-        foreach ($productIds as $id) {
-            $ch = curl_init('https://indexer' . $env . '.increazy.com/magento2/webhook/product');
-            $payload = json_encode([
-                'app'    => $appID,
+        try {
+            
+            $collection = $this->filter->getCollection($this->collectionFactory->create());
+            $productIds = $collection->getAllIds();
+            if (!isset($productIds)) return;
+    
+            $this->webClient->initialize('product', __CLASS__);
+    
+            $this->webClient->pushWebhook([
                 'action' => 'save',
-                'entity' => $id,
+                'entity' => $productIds,
             ]);
+        }
 
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type:application/json']);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-            $result = curl_exec($ch);
-            curl_close($ch);
+        catch (LocalizedException $err)
+        {
+            
         }
     }
 }

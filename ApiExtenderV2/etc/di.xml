@@ -7,4 +7,6 @@
     <type name="Magento\Catalog\Api\CategoryRepositoryInterface">
         <plugin name="category_field" type="Increazy\ApiExtenderV2\Plugin\Category"/>
     </type>
+
+    <preference for="Increazy\ApiExtenderV2\Model\WebClientInterface" type="Increazy\ApiExtenderV2\Model\WebClient"/>
 </config>

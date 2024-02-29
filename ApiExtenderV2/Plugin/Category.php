@@ -14,7 +14,7 @@ class Category
 
 
     /**
-     * @param \Magento\Catalog\Api\Data\CategoryExtensionFactory 
+     * @param \Magento\Catalog\Api\Data\CategoryExtensionFactory
      * $extensionFactory
      */
     public function __construct(\Magento\Catalog\Api\Data\CategoryExtensionFactory $extensionFactory)
@@ -78,12 +78,13 @@ class Category
         $productCollection = $this->objectManager->create('Magento\Catalog\Model\ResourceModel\Product\Collection')
             ->addAttributeToSelect(['cat_index_position', 'sku'])
             ->addAttributeToFilter('status', 1)
-            ->addCategoryFilter($category);
+            ->addCategoryFilter($category)
+            ->groupByAttribute('sku');
 
         foreach ($productCollection as $product)
         {
             $products[] = [
-                'sku' => $product->getSku(), 
+                'sku' => $product->getSku(),
                 'position' => $product->getCatIndexPosition(),
               ];
         }

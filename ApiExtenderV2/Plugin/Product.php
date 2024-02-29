@@ -17,10 +17,6 @@ class Product
     private $storeManager;
     private $product;
     private $swatchHelper;
-    private $stock;
-    private $rule;
-    private $customerGroup;
-    private $dateTime;
 
     /**
      * @var \Magento\Catalog\Model\ResourceModel\Category\CollectionFactory
@@ -107,6 +103,7 @@ class Product
                 'getters'    => $getters,
                 'media'      => $this->getMedia($entity),
                 'stock'      => $this->getStock($entity),
+                'breadcrumb' => $this->getBreadcrumb($entity) ?? [],
                 'prices'     => $this->getPrices($entity) ?? [],
             ]));
 
@@ -194,34 +191,53 @@ class Product
     private function getSubProducts($entity)
     {
         return array_values(array_map(function($productId) {
-	    return [
-		'attribute' => 'id',
-	        'value' => $productId
-	    ];
+            $product = $this->product->load($productId);
+            return array_merge($product->getData(), [
+                'prices' => $this->getPrices($product),
+                'media'  => $product->getMediaGalleryImages()->toArray()['items'],
+                'stock'  => $this->getStock($product),
+            ]);
         }, $entity->getExtensionAttributes()->getConfigurableProductLinks() ?? []));
+    }
+
+    private function getBreadcrumb($entity)
+    {
+        $evercrumbs = [];
+
+        $categoryCollection = clone $entity->getCategoryCollection();
+        $categoryCollection->clear();
+        $categoryCollection->addAttributeToSort('level', $categoryCollection::SORT_ORDER_DESC)
+            ->addAttributeToFilter('path', [
+                'like' => "1/" . $this->storeManager->getStore()->getRootCategoryId() . "/%"]
+            );
+
+        $categoryCollection->setPageSize(1);
+        $breadcrumbCategories = $categoryCollection->getFirstItem()->getParentCategories();
+
+        foreach ($breadcrumbCategories as $category) {
+            $evercrumbs[] = array(
+                'label' => $category->getName(),
+                'title' => $category->getName(),
+                'link'  => $category->getUrl()
+            );
+        }
+
+        $evercrumbs[] = [
+            'label' => $entity->getName(),
+            'title' => $entity->getName(),
+            'link'  => ''
+        ];
+
+        return $evercrumbs;
     }
 
     private function getStock($entity)
     {
         $stockItem = $this->stock->load($entity->getId(), 'product_id');
 
-		$stock = $stockItem->getData();
-		$stock['salable'] = $stock['qty'];
-
-		if (class_exists('\Magento\InventorySalesAdminUi\Model\GetSalableQuantityDataBySku')) {
-			try {
-				$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-				$StockState = $objectManager->get('\Magento\InventorySalesAdminUi\Model\GetSalableQuantityDataBySku');
-				$qty = $StockState->execute($entity->getSku());
-
-				if (count($qty) > 0) {
-					$stock['salable'] = $qty[0]['qty'] ?? $stock['qty'];
-				}
-			} catch(\Error $e) {} catch(\Exception $e) {}
-		}
-
-        return array_merge($stock, [
+        return array_merge($stockItem->getData(), [
             'sku'     => $entity->getSku(),
+            'salable' => $entity->isSalable(),
         ]);
     }
 

@@ -1,44 +1,44 @@
 <?php
 namespace Increazy\ApiExtenderV2\Observer;
 
+use Increazy\ApiExtenderV2\Model\WebClientInterface;
+
 class OrderPlaced implements \Magento\Framework\Event\ObserverInterface
 {
     protected $catalogProductEditActionAttributeHelper;
 
+    /**
+     * @param WebClientInterface
+     */
+    private $webClient;
+
+
     public function __construct(
-        \Magento\Catalog\Helper\Product\Edit\Action\Attribute $catalogProductEditActionAttributeHelper
+        \Magento\Catalog\Helper\Product\Edit\Action\Attribute $catalogProductEditActionAttributeHelper,
+        WebClientInterface $webClient
     ) {
         $this->catalogProductEditActionAttributeHelper = $catalogProductEditActionAttributeHelper;
+        $this->webClient = $webClient;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
         $order = $observer->getEvent()->getOrder();
+        
         if(!$order) { return; }
-
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $scopeConfig = $objectManager->get('Magento\Framework\App\Config\ScopeConfigInterface');
-
-        $appID = $scopeConfig->getValue('increazy_general/general/app', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-        $isTest = $scopeConfig->getValue('increazy_general/general/test', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-        $env = $isTest ? '.homolog' : '';
-
+        $ids = [];
         foreach ($order->getAllItems() as $item) {
-            $id = $item->getProductId();
-
-            $ch = curl_init('https://indexer.api' . $env . '.increazy.com/magento2/webhook/product');
-            $payload = json_encode([
-                'app'    => $appID,
-                'action' => 'save',
-                'entity' => $id,
-            ]);
-
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type:application/json']);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-            $result = curl_exec($ch);
-            curl_close($ch);
+            $ids[] = $item->getProductId();
         }
+        $this->webClient->initialize('product', __CLASS__);
+            
+        $payload = [
+            'action' => 'save',
+            'entity' => $ids,
+        ];
+
+        $this->webClient->pushWebhook($payload);
+        
+        
     }
 }
