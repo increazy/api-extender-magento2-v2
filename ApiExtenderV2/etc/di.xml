@@ -9,4 +9,9 @@
     </type>
 
     <preference for="Increazy\ApiExtenderV2\Model\WebClientInterface" type="Increazy\ApiExtenderV2\Model\WebClient"/>
+
+    <type name="Magento\Catalog\Controller\Adminhtml\Product\MassDelete">
+        <plugin name="increazy_massdelete_webhook"
+                type="Increazy\ApiExtenderV2\Plugin\MassDeletePlugin" />
+    </type>
 </config>
