@@ -7,6 +7,10 @@
       />
   </event>
 
+  <event name="catalogrule_rule_save_after">
+    <observer name="increazy_catalogrule_observer" instance="Increazy\ApiExtenderV2\Observer\CatalogRuleSave" />
+  </event>
+
   <event name="catalog_product_attribute_update_before">
     <observer name="increazywb_catalog_product_mass_action_update_attributes" instance="Increazy\ApiExtenderV2\Observer\Productattributeupdatebefore" />
   </event>
