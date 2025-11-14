@@ -280,12 +280,20 @@ class Product
                         'sale_price'    => $entity->getSpecialPrice(),
                         'price'         => $entity->getPrice(),
                         'special_date'  => $entity->getSpecialToDate(),
-                        'rule'         => $this->rule->getRulesFromProduct(
+
+                        'rules'        => $this->rule->getRulesFromProduct(
                             $this->dateTime->gmtDate(),
                             $websiteID,
                             $group['value'],
                             $entity->getId()
-                        )[0] ?? null,
+                        ),
+                        
+                        // 'rule'         => $this->rule->getRulesFromProduct(
+                        //     $this->dateTime->gmtDate(),
+                        //     $websiteID,
+                        //     $group['value'],
+                        //     $entity->getId()
+                        // )[0] ?? null,
                     ]);
                 // }
             }
@@ -294,31 +302,65 @@ class Product
         return $rules;
     }
 
-
     private function caculateMinPrice($price)
     {
-        $rule = $price['rule'];
-        unset($price['rule']);
+        $rules = isset($price['rules']) ? $price['rules'] : [];
+        unset($price['rules']);
+
         $sDate = $price['special_date'];
 
-        $inSpecialPriceWithoutDate = $sDate == null && $price['special_price'] > 0 && $price['special_date'] != $price['price'];
-        $inSpecialPriceWithDate = $sDate != null && strtotime('now') < strtotime($sDate ?? 'now');
+        $inSpecialPriceWithoutDate = $sDate == null
+            && $price['special_price'] > 0
+            && $price['special_price'] != $price['price'];
+
+        $inSpecialPriceWithDate = $sDate != null
+            && strtotime('now') <= strtotime($sDate);
+
         $inSpecialPrice = $inSpecialPriceWithoutDate || $inSpecialPriceWithDate;
+
+        // Se estiver em special_price válido, mantemos o comportamento atual:
+        // NÃO aplicar regras de catálogo.
         $specialPrice = $inSpecialPrice ? $price['special_price'] : $price['price'];
 
-        // by_percent aplica o percentual
-        // by_fixed aplica o bruto
-        // to_percent o preço final é igual a esse percentual
-        // to_fixed o preço final é igual a esse valor
-        if ($rule && !$inSpecialPrice) {
-            if ($rule['action_operator'] === 'by_percent') {
-                $specialPrice = $specialPrice - ($specialPrice * ($rule['action_amount'] / 100));
-            } elseif ($rule['action_operator'] === 'by_fixed') {
-                $specialPrice = $specialPrice - $rule['action_amount'];
-            } elseif ($rule['action_operator'] === 'to_percent') {
-                $specialPrice = $specialPrice * ($rule['action_amount'] / 100);
-            } elseif ($rule['action_operator'] === 'to_fixed') {
-                $specialPrice = $rule['action_amount'];
+        if (!$inSpecialPrice && !empty($rules)) {
+            // Compatibilidade: se vier só uma regra como array simples
+            if (isset($rules['action_operator'])) {
+                $rules = [$rules];
+            }
+
+            // Ordena como o Magento faz: sort_order asc, rule_id asc
+            usort($rules, function ($a, $b) {
+                $aSort = isset($a['sort_order']) ? (int)$a['sort_order'] : 0;
+                $bSort = isset($b['sort_order']) ? (int)$b['sort_order'] : 0;
+
+                if ($aSort === $bSort) {
+                    $aId = isset($a['rule_id']) ? (int)$a['rule_id'] : 0;
+                    $bId = isset($b['rule_id']) ? (int)$b['rule_id'] : 0;
+                    return $aId <=> $bId;
+                }
+
+                return $aSort <=> $bSort;
+            });
+
+            // Aplica as regras na ordem, respeitando "Descartar regras subsequentes"
+            foreach ($rules as $rule) {
+                $operator = isset($rule['action_operator']) ? $rule['action_operator'] : null;
+                $amount   = isset($rule['action_amount']) ? (float)$rule['action_amount'] : 0.0;
+
+                if ($operator === 'by_percent') {
+                    $specialPrice = $specialPrice - ($specialPrice * ($amount / 100));
+                } elseif ($operator === 'by_fixed') {
+                    $specialPrice = $specialPrice - $amount;
+                } elseif ($operator === 'to_percent') {
+                    $specialPrice = $specialPrice * ($amount / 100);
+                } elseif ($operator === 'to_fixed') {
+                    $specialPrice = $amount;
+                }
+
+                // action_stop = 1 => para aqui
+                if (!empty($rule['action_stop'])) {
+                    break;
+                }
             }
         }
 
@@ -326,4 +368,36 @@ class Product
 
         return $price;
     }
+
+    // private function caculateMinPrice($price)
+    // {
+    //     $rule = $price['rule'];
+    //     unset($price['rule']);
+    //     $sDate = $price['special_date'];
+
+    //     $inSpecialPriceWithoutDate = $sDate == null && $price['special_price'] > 0 && $price['special_date'] != $price['price'];
+    //     $inSpecialPriceWithDate = $sDate != null && strtotime('now') < strtotime($sDate ?? 'now');
+    //     $inSpecialPrice = $inSpecialPriceWithoutDate || $inSpecialPriceWithDate;
+    //     $specialPrice = $inSpecialPrice ? $price['special_price'] : $price['price'];
+
+    //     // by_percent aplica o percentual
+    //     // by_fixed aplica o bruto
+    //     // to_percent o preço final é igual a esse percentual
+    //     // to_fixed o preço final é igual a esse valor
+    //     if ($rule && !$inSpecialPrice) {
+    //         if ($rule['action_operator'] === 'by_percent') {
+    //             $specialPrice = $specialPrice - ($specialPrice * ($rule['action_amount'] / 100));
+    //         } elseif ($rule['action_operator'] === 'by_fixed') {
+    //             $specialPrice = $specialPrice - $rule['action_amount'];
+    //         } elseif ($rule['action_operator'] === 'to_percent') {
+    //             $specialPrice = $specialPrice * ($rule['action_amount'] / 100);
+    //         } elseif ($rule['action_operator'] === 'to_fixed') {
+    //             $specialPrice = $rule['action_amount'];
+    //         }
+    //     }
+
+    //     $price['sale_price'] = $specialPrice;
+
+    //     return $price;
+    // }
 }
