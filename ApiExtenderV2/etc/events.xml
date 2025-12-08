@@ -1,17 +1,30 @@
 <?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
-  <event name="catalog_entity_attribute_load_after">
-      <observer
-        name="increazy_product_attribute_option_swatch"
-        instance="Increazy\ApiExtenderV2\Observer\OptionSwatchLoadAfter"
-      />
-  </event>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="catalog_entity_attribute_load_after">
+        <observer
+            name="increazy_product_attribute_option_swatch"
+            instance="Increazy\ApiExtenderV2\Observer\OptionSwatchLoadAfter"
+        />
+    </event>
 
-  <event name="catalog_product_attribute_update_before">
-    <observer name="increazywb_catalog_product_mass_action_update_attributes" instance="Increazy\ApiExtenderV2\Observer\Productattributeupdatebefore" />
-  </event>
+    <event name="catalogrule_rule_save_after">
+        <observer name="increazy_catalogrule_observer"
+            instance="Increazy\ApiExtenderV2\Observer\CatalogRuleSave" />
+    </event>
 
-  <event name="catalog_product_import_bunch_save_after">
-    <observer name="increazywb_catalog_product_import_bunch_save_attributes" instance="Increazy\ApiExtenderV2\Observer\Bunchsave" />
-  </event>
+    <event name="catalogrule_rule_delete_after">
+        <observer name="increazy_catalogrule_delete"
+            instance="Increazy\ApiExtenderV2\Observer\CatalogRuleSave" />
+    </event>
+
+    <event name="catalog_product_attribute_update_before">
+        <observer name="increazywb_catalog_product_mass_action_update_attributes"
+            instance="Increazy\ApiExtenderV2\Observer\Productattributeupdatebefore" />
+    </event>
+
+    <event name="catalog_product_import_bunch_save_after">
+        <observer name="increazywb_catalog_product_import_bunch_save_attributes"
+            instance="Increazy\ApiExtenderV2\Observer\Bunchsave" />
+    </event>
 </config>
