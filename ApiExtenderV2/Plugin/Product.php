@@ -6,6 +6,7 @@ use Magento\Framework\Api\SearchResultsInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\CatalogRule\Model\ResourceModel\Rule as RuleModel;
 use Magento\Framework\Stdlib\DateTime\DateTime as DateTimeMagento;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Customer\Model\ResourceModel\Group\Collection as CustomerGroup;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\CatalogInventory\Model\Stock\Item;
@@ -17,6 +18,11 @@ class Product
     private $storeManager;
     private $product;
     private $swatchHelper;
+    private $stock;
+    private $rule;
+    private $customerGroup;
+    private $dateTime;
+    private $localeDate;
 
     /**
      * @var \Magento\Catalog\Model\ResourceModel\Category\CollectionFactory
@@ -47,7 +53,8 @@ class Product
         CustomerGroup $customerGroup,
         DateTimeMagento $dateTime,
         \Magento\Catalog\Model\ResourceModel\Category\CollectionFactory $categoryCollectionFactory,
-        \Magento\Reports\Model\ResourceModel\Product\Sold\CollectionFactory $soldCollectionFactory
+        \Magento\Reports\Model\ResourceModel\Product\Sold\CollectionFactory $soldCollectionFactory,
+        TimezoneInterface $localeDate = null
     ) {
         $this->storeManager = $storeManager;
         $this->stock = $stock;
@@ -58,6 +65,8 @@ class Product
         $this->dateTime = $dateTime;
         $this->categoryCollectionFactory = $categoryCollectionFactory;
         $this->soldCollectionFactory = $soldCollectionFactory;
+        $this->localeDate = $localeDate
+            ?: \Magento\Framework\App\ObjectManager::getInstance()->get(TimezoneInterface::class);
     }
     /**
      * @param \Magento\Catalog\Model\Product[] $items
@@ -248,64 +257,53 @@ class Product
         $rules = [];
 
         foreach ($websites as $websiteID => $websiteConfig) {
+            $defaultStore = $websiteConfig->getDefaultStore();
+            $date = $this->localeDate->scopeDate($defaultStore ? $defaultStore->getId() : null);
+
             foreach ($groups as $group) {
-                // if ($entity->getTypeId() === 'configurable') {
-                //     $children = $entity->getTypeInstance()->getUsedProducts($entity);
+                $ruleData = $this->getRulePriceData(
+                    $date,
+                    $websiteID,
+                    $group['value'],
+                    $entity->getId()
+                );
 
-                //     foreach ($children as $child){
-                //         $rules[] = $this->caculateMinPrice([
-                //             'website'       => $websiteID,
-                //             'group'         => $group['value'],
-                //             'sku'           => $child->getSku(),
-                //             'product_id'    => $child->getId(),
-                //             'special_price' => $child->getSpecialPrice(),
-                //             'sale_price'    => $child->getSpecialPrice(),
-                //             'price'         => $child->getPrice(),
-                //             'special_date'  => $child->getSpecialToDate(),
-                //             'rule'         => $this->rule->getRulesFromProduct(
-                //                 $this->dateTime->gmtDate(),
-                //                 $websiteID,
-                //                 $group['value'],
-                //                 $child->getId()
-                //             )[0] ?? null,
-                //         ]);
-                //     }
-                // } else {
-                    $rules[] = $this->caculateMinPrice([
-                        'website'       => $websiteID,
-                        'group'         => $group['value'],
-                        'sku'           => $entity->getSku(),
-                        'product_id'    => $entity->getId(),
-                        'special_price' => $entity->getSpecialPrice(),
-                        'sale_price'    => $entity->getSpecialPrice(),
-                        'price'         => $entity->getPrice(),
-                        'special_date'  => $entity->getSpecialToDate(),
-
-                        'rules'        => $this->rule->getRulesFromProduct(
-                            $this->dateTime->gmtDate(),
-                            $websiteID,
-                            $group['value'],
-                            $entity->getId()
-                        ),
-                        
-                        // 'rule'         => $this->rule->getRulesFromProduct(
-                        //     $this->dateTime->gmtDate(),
-                        //     $websiteID,
-                        //     $group['value'],
-                        //     $entity->getId()
-                        // )[0] ?? null,
-                    ]);
-                // }
+                $rules[] = $this->caculateMinPrice([
+                    'website'       => $websiteID,
+                    'group'         => $group['value'],
+                    'sku'           => $entity->getSku(),
+                    'product_id'    => $entity->getId(),
+                    'special_price' => $entity->getSpecialPrice(),
+                    'sale_price'    => $entity->getSpecialPrice(),
+                    'price'         => $entity->getPrice(),
+                    'special_date'  => $entity->getSpecialToDate(),
+                    'rule_price'    => $ruleData ? $ruleData['rule_price'] : false,
+                    'rule_end_date' => $ruleData && isset($ruleData['earliest_end_date']) ? $ruleData['earliest_end_date'] : null,
+                ]);
             }
         }
 
         return $rules;
     }
 
+    private function getRulePriceData($date, $websiteId, $customerGroupId, $productId)
+    {
+        $connection = $this->rule->getConnection();
+        $select = $connection->select()
+            ->from($this->rule->getTable('catalogrule_product_price'), ['rule_price', 'earliest_end_date'])
+            ->where('rule_date = ?', $date->format('Y-m-d'))
+            ->where('website_id = ?', $websiteId)
+            ->where('customer_group_id = ?', $customerGroupId)
+            ->where('product_id = ?', $productId);
+
+        return $connection->fetchRow($select);
+    }
+
     private function caculateMinPrice($price)
     {
-        $rules = isset($price['rules']) ? $price['rules'] : [];
-        unset($price['rules']);
+        $rulePrice = isset($price['rule_price']) ? $price['rule_price'] : false;
+        $ruleEndDate = isset($price['rule_end_date']) ? $price['rule_end_date'] : null;
+        unset($price['rule_price'], $price['rule_end_date']);
 
         $sDate = $price['special_date'];
 
@@ -318,48 +316,18 @@ class Product
 
         $inSpecialPrice = $inSpecialPriceWithoutDate || $inSpecialPriceWithDate;
 
-        // Se estiver em special_price válido, mantemos o comportamento atual:
-        // NÃO aplicar regras de catálogo.
-        $specialPrice = $inSpecialPrice ? $price['special_price'] : $price['price'];
+        $specialPrice = $inSpecialPrice ? (float) $price['special_price'] : (float) $price['price'];
 
-        if (!$inSpecialPrice && !empty($rules)) {
-            // Compatibilidade: se vier só uma regra como array simples
-            if (isset($rules['action_operator'])) {
-                $rules = [$rules];
-            }
-
-            // Ordena como o Magento faz: sort_order asc, rule_id asc
-            usort($rules, function ($a, $b) {
-                $aSort = isset($a['sort_order']) ? (int)$a['sort_order'] : 0;
-                $bSort = isset($b['sort_order']) ? (int)$b['sort_order'] : 0;
-
-                if ($aSort === $bSort) {
-                    $aId = isset($a['rule_id']) ? (int)$a['rule_id'] : 0;
-                    $bId = isset($b['rule_id']) ? (int)$b['rule_id'] : 0;
-                    return $aId <=> $bId;
-                }
-
-                return $aSort <=> $bSort;
-            });
-
-            // Aplica as regras na ordem, respeitando "Descartar regras subsequentes"
-            foreach ($rules as $rule) {
-                $operator = isset($rule['action_operator']) ? $rule['action_operator'] : null;
-                $amount   = isset($rule['action_amount']) ? (float)$rule['action_amount'] : 0.0;
-
-                if ($operator === 'by_percent') {
-                    $specialPrice = $specialPrice - ($specialPrice * ($amount / 100));
-                } elseif ($operator === 'by_fixed') {
-                    $specialPrice = $specialPrice - $amount;
-                } elseif ($operator === 'to_percent') {
-                    $specialPrice = $specialPrice * ($amount / 100);
-                } elseif ($operator === 'to_fixed') {
-                    $specialPrice = $amount;
-                }
-
-                // action_stop = 1 => para aqui
-                if (!empty($rule['action_stop'])) {
-                    break;
+        // Aplica o preço da regra de catálogo se for menor (mesmo comportamento do Magento)
+        if ($rulePrice !== false && $rulePrice !== null) {
+            $rulePriceFloat = (float) $rulePrice;
+            if ($rulePriceFloat < $specialPrice) {
+                $price['special_price'] = $rulePriceFloat;
+                // Subtrai 1 dia para retornar a data exata do admin (earliest_end_date é o primeiro dia inativo)
+                if ($ruleEndDate) {
+                    $price['special_date'] = date('Y-m-d', strtotime($ruleEndDate . ' -1 day'));
+                } else {
+                    $price['special_date'] = null;
                 }
             }
         }
@@ -368,36 +336,4 @@ class Product
 
         return $price;
     }
-
-    // private function caculateMinPrice($price)
-    // {
-    //     $rule = $price['rule'];
-    //     unset($price['rule']);
-    //     $sDate = $price['special_date'];
-
-    //     $inSpecialPriceWithoutDate = $sDate == null && $price['special_price'] > 0 && $price['special_date'] != $price['price'];
-    //     $inSpecialPriceWithDate = $sDate != null && strtotime('now') < strtotime($sDate ?? 'now');
-    //     $inSpecialPrice = $inSpecialPriceWithoutDate || $inSpecialPriceWithDate;
-    //     $specialPrice = $inSpecialPrice ? $price['special_price'] : $price['price'];
-
-    //     // by_percent aplica o percentual
-    //     // by_fixed aplica o bruto
-    //     // to_percent o preço final é igual a esse percentual
-    //     // to_fixed o preço final é igual a esse valor
-    //     if ($rule && !$inSpecialPrice) {
-    //         if ($rule['action_operator'] === 'by_percent') {
-    //             $specialPrice = $specialPrice - ($specialPrice * ($rule['action_amount'] / 100));
-    //         } elseif ($rule['action_operator'] === 'by_fixed') {
-    //             $specialPrice = $specialPrice - $rule['action_amount'];
-    //         } elseif ($rule['action_operator'] === 'to_percent') {
-    //             $specialPrice = $specialPrice * ($rule['action_amount'] / 100);
-    //         } elseif ($rule['action_operator'] === 'to_fixed') {
-    //             $specialPrice = $rule['action_amount'];
-    //         }
-    //     }
-
-    //     $price['sale_price'] = $specialPrice;
-
-    //     return $price;
-    // }
 }
