@@ -279,6 +279,7 @@ class Product
                     'special_date'  => $entity->getSpecialToDate(),
                     'rule_price'    => $ruleData ? $ruleData['rule_price'] : false,
                     'rule_end_date' => $ruleData && isset($ruleData['earliest_end_date']) ? $ruleData['earliest_end_date'] : null,
+                    'rules'         => $this->getAllRulesForProduct($websiteID, $group['value'], $entity->getId()),
                 ]);
             }
         }
@@ -297,6 +298,18 @@ class Product
             ->where('product_id = ?', $productId);
 
         return $connection->fetchRow($select);
+    }
+
+    private function getAllRulesForProduct($websiteId, $customerGroupId, $productId)
+    {
+        $connection = $this->rule->getConnection();
+        $select = $connection->select()
+            ->from($this->rule->getTable('catalogrule_product'))
+            ->where('website_id = ?', $websiteId)
+            ->where('customer_group_id = ?', $customerGroupId)
+            ->where('product_id = ?', $productId);
+
+        return $connection->fetchAll($select);
     }
 
     private function caculateMinPrice($price)
