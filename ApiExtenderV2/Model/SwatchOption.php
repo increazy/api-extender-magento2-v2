@@ -33,6 +33,6 @@ class SwatchOption extends Option implements SwatchOptionInterface
 
     public function setSwatchValue($value)
     {
-        return $this->setData(SwatchOptionInterface::SWATCHVALUE, $swatch_value);
+        return $this->setData(SwatchOptionInterface::SWATCHVALUE, $value);
     }
 }
