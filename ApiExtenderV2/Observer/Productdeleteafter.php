@@ -26,7 +26,7 @@ class Productdeleteafter implements ObserverInterface
             $this->webClient->initialize('product', __CLASS__);
             
             $payload = [
-                'action' => 'save',
+                'action' => 'delete',
                 'entity' => $id,
             ];
     
