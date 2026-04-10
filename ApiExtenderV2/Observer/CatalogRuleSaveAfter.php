@@ -21,12 +21,19 @@ class CatalogRuleSaveAfter implements ObserverInterface
     {
         try {
             $rule = $observer->getRule();
-            $id = $rule->getId();
-            $this->webClient->initialize('catalogrule', __CLASS__);
+            $matchingProducts = $rule->getMatchingProductIds();
+
+            if (empty($matchingProducts)) {
+                return;
+            }
+
+            $productIds = array_keys($matchingProducts);
+
+            $this->webClient->initialize('product', __CLASS__);
 
             $payload = [
                 'action' => 'save',
-                'entity' => $id,
+                'entity' => $productIds,
             ];
 
             $this->webClient->pushWebhook($payload);

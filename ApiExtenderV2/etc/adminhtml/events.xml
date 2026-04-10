@@ -43,12 +43,4 @@
     <event name="catalogrule_rule_delete_after">
         <observer name="webhook_increazy_cr_delete" instance="Increazy\ApiExtenderV2\Observer\CatalogRuleDeleteAfter" />
     </event>
-
-    <event name="salesrule_rule_save_after">
-        <observer name="webhook_increazy_sr_save" instance="Increazy\ApiExtenderV2\Observer\SalesRuleSaveAfter" />
-    </event>
-
-    <event name="salesrule_rule_delete_after">
-        <observer name="webhook_increazy_sr_delete" instance="Increazy\ApiExtenderV2\Observer\SalesRuleDeleteAfter" />
-    </event>
 </config>
