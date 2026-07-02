@@ -10,4 +10,9 @@
             type="Increazy\ApiExtenderV2\Plugin\Price\BasePricesWebhookPlugin"
             sortOrder="10"/>
     </type>
+    <type name="Magento\Catalog\Api\SpecialPriceStorageInterface">
+        <plugin name="increazy_api_extender_v2_special_prices_webhook_rest_only"
+            type="Increazy\ApiExtenderV2\Plugin\Price\SpecialPricesWebhookPlugin"
+            sortOrder="10"/>
+    </type>
 </config>
